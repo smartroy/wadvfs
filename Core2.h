@@ -33,7 +33,7 @@ struct BaseTask
     int wcet;
     float mean;
     float high;
-    float read_ratio;
+    
     float utilizaton;
     //std::ifstream file;
 };
@@ -46,6 +46,8 @@ struct Task
     int exe;
     float utilization;
     int index;
+    float read_ratio;
+    int wcet;
     Task(int offset, const BaseTask &t);
 };
 
@@ -124,9 +126,11 @@ class Core
     double p_ratio[HV + 1];    //power ratio when using different voltage
     double area_ratio[blocks]; // weight for each functional block when calculating reliability
     bool dvfs_tradition;
+    bool new_release;
     float total_power;
     int task_count;
     std::vector<BaseTask> coreTask;
+    float task_utilization[10];
 
 public:
     double temperature[blocks];
