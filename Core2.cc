@@ -106,15 +106,9 @@ void Core::reset_slack()
 
 void Core::prep_core(std::vector<BaseTask> tasks, float threshold)
 {
+    assert(assigned_tasks.size() > 0 && assigned_tasks.size() <= MAX_TASK_NUM);
     assigned_tasks = tasks;
     ipc_threshold = threshold;
-}
-
-void Core::gen_lcm()
-{
-    assert(assigned_tasks.size() > 0);
-
-    new_release = false;
     wc_utilization = 0;
 
     reset_slack();
@@ -126,12 +120,23 @@ void Core::gen_lcm()
         core_lcm = get_lcm(core_lcm, assigned_tasks[i].period);
         wc_utilization += assigned_tasks[i].utilizaton;
     }
+}
+
+void Core::gen_lcm()
+{
+    assert(assigned_tasks.size() > 0);
+
+    new_release = false;
     core_utilization = wc_utilization;
 
     while (!task_list.empty())
         task_list.pop();
     for (int i = 0; i < assigned_tasks.size(); i++)
     {
+        taskSlack[i] = 0;
+        taskSlackFree[i] = 0;
+        taskSlackHigh[i] = 0;
+        taskSlackLow[i] = 0;
         task_utilization[i] = assigned_tasks[i].utilizaton;
         for (int j = 0; j < core_lcm / assigned_tasks[i].period; j++)
         {
@@ -139,8 +144,9 @@ void Core::gen_lcm()
         }
     }
 }
-Task::Task(int offset, const BaseTask& b){
-    arrival = j * b.period;
+Task::Task(int offset, const BaseTask &b)
+{
+    arrival = offset * b.period;
     deadline = arrival + b.period;
     index = b.index;
     actual = -1;
@@ -167,25 +173,25 @@ void Core::run_lcm(long sys_wide_lcm, double sys_time)
         while (!task_list.empty() && task_list.top().arrival <= core_time)
         {
             std::normal_distribution<double> distribution(assigned_tasks[task_list.top().index].mean, 0.2);
-            double exe_rand=0;
-			while(exe_rand<1e-5|| exe_rand>1.0){
-				exe_rand=distribution(generator);
-			}
+            double exe_rand = 0;
+            while (exe_rand < 1e-5 || exe_rand > 1.0)
+            {
+                exe_rand = distribution(generator);
+            }
             auto ready_task = task_list.top();
             task_list.pop();
-            ready_task.actual = int(float(ready_task.wcet)*exe_rand);
+            ready_task.actual = int(float(ready_task.wcet) * exe_rand);
             ready_task.read_ratio = exe_rand;
             task_utilization[ready_task.index] = ready_task.utilization;
             exe_list.push(ready_task);
-            
+
             new_release = true;
         }
-        if(dvfs_tradition&&new_release){
+        if (dvfs_tradition && new_release)
+        {
             set_speed();
             new_release = false;
         }
-
-
     }
 }
 

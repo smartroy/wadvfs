@@ -25,6 +25,7 @@ const int LV(0);
 const int MV(1);
 const int HV(2);
 const double TIME_STEP(5e-3);
+const int MAX_TASK_NUM(10);
 struct BaseTask
 {
     std::string name;
@@ -33,7 +34,7 @@ struct BaseTask
     int wcet;
     float mean;
     float high;
-    
+
     float utilizaton;
     //std::ifstream file;
 };
@@ -129,8 +130,12 @@ class Core
     bool new_release;
     float total_power;
     int task_count;
-    std::vector<BaseTask> coreTask;
-    float task_utilization[10];
+
+    float task_utilization[MAX_TASK_NUM];
+    int taskSlackFree[MAX_TASK_NUM];
+    int taskSlackHigh[MAX_TASK_NUM];
+    int taskSlackLow[MAX_TASK_NUM];
+    int taskSlack[MAX_TASK_NUM];
 
 public:
     double temperature[blocks];
