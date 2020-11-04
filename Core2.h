@@ -1,3 +1,12 @@
+/*
+array to store the slack of each task: assigned for high, low and free and <total, expiration> pair (use for check if slack can be used by expiration).
+
+TODO:
+use priority queue of pair <deadline, index> for the expiration of slack
+
+for slack for free, use list of task index to determin using sequence. slack cannot be used before expiration will be used first else based on deadline increasing sequence
+*/
+
 #ifndef CORE2_H
 #define CORE2_H
 #include <vector>
