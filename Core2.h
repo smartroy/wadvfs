@@ -195,7 +195,7 @@ public:
     void UseSlackLow(float s_used);
     void UseSlackFree(float s_used);
     void HandleAboutExpire();
-    void AssignNewSlack(int, float);
+    void AssignNewSlack(int, float, bool release = false);
 };
 long get_gcd(long a, long b);
 long get_lcm(long a, long b);

@@ -254,7 +254,10 @@ void Core::run_lcm(long sys_wide_lcm, double sys_time)
         }
     }
 }
-
+void Core::AssignNewSlack(int idx, float s, bool release)
+{
+    //TODO: assign new slack, if release is true, add new slack to slack using list
+}
 long get_gcd(long a, long b)
 {
     if (b == 0)
