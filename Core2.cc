@@ -120,6 +120,7 @@ void Core::prep_core(std::vector<BaseTask> tasks, float threshold)
         core_lcm = get_lcm(core_lcm, assigned_tasks[i].period);
         wc_utilization += assigned_tasks[i].utilizaton;
     }
+    slackForDVFS = (spd[HV] - spd[LV]) * DVFS_STEP;
 }
 
 void Core::gen_lcm()
@@ -133,7 +134,7 @@ void Core::gen_lcm()
         task_list.pop();
     for (int i = 0; i < assigned_tasks.size(); i++)
     {
-        taskSlack[i] = 0;
+        taskSlack[i] = {-1, -1};
         taskSlackFree[i] = 0;
         taskSlackHigh[i] = 0;
         taskSlackLow[i] = 0;
@@ -164,12 +165,17 @@ void Core::run_lcm(long sys_wide_lcm, double sys_time)
     bool new_release = false;
     float out_ipc = 0;
 
+    int dvfs_count = 0;
+
     while (core_time < sys_lcm)
     {
         if (core_time % core_lcm == 0)
         {
             gen_lcm();
         }
+        HandleExpire();
+        HandleAboutExpire();
+
         while (!task_list.empty() && task_list.top().arrival <= core_time)
         {
             std::normal_distribution<double> distribution(assigned_tasks[task_list.top().index].mean, 0.2);
@@ -180,9 +186,16 @@ void Core::run_lcm(long sys_wide_lcm, double sys_time)
             }
             auto ready_task = task_list.top();
             task_list.pop();
+
             ready_task.actual = int(float(ready_task.wcet) * exe_rand);
             ready_task.read_ratio = exe_rand;
             task_utilization[ready_task.index] = ready_task.utilization;
+
+            int idx = ready_task.index;
+            taskSlack[idx].first = ready_task.deadline;
+            taskSlack[idx].second = float(ready_task.wcet) * (1 / wc_utilization - 1);
+            AssignNewSlack(idx, taskSlack[idx].second);
+
             exe_list.push(ready_task);
 
             new_release = true;
@@ -191,6 +204,53 @@ void Core::run_lcm(long sys_wide_lcm, double sys_time)
         {
             set_speed();
             new_release = false;
+        }
+        if (!dvfs_tradition && dvfs_count >= DVFS_STEP)
+        {
+            IPC_dvfs /= dvfs_count;
+            dvfs_count = 0;
+            int prev_voltage = voltage;
+            if (!exe_list.empty())
+            {
+                if (slackFree > slackForDVFS)
+                {
+                    voltage = LV;
+                    core_speed = spd[voltage];
+                    slackFree -= slackForDVFS;
+                    UseSlackFree(slackForDVFS);
+                }
+                else
+                {
+                    if (IPC_dvfs >= ipc_threshold && slackHigh > slackForDVFS)
+                    {
+                        voltage = LV;
+                        core_speed = spd[voltage];
+                        slackHigh -= slackForDVFS;
+                        UseSlackHigh(slackForDVFS);
+                    }
+                    else if (IPC_dvfs < ipc_threshold && slackLow > slackForDVFS)
+                    {
+                        voltage = LV;
+                        core_speed = spd[voltage];
+                        slackLow -= slackForDVFS;
+                        UseSlackLow(slackForDVFS);
+                    }
+                    else
+                    {
+                        voltage = HV;
+                        core_speed = spd[voltage];
+                    }
+                }
+                if (voltage != prev_voltage)
+                {
+                    voltageChanged = true;
+                }
+            }
+            else
+            {
+                voltage = LV;
+                core_speed = spd[voltage];
+            }
         }
     }
 }

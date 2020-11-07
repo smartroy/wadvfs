@@ -29,12 +29,13 @@ const double EXP_EM(2.0);
 const double EXP_BD(2.0);
 
 const int blocks(15);
-const int dvfs_step(10);
+const int DVFS_STEP(10);
 const int LV(0);
 const int MV(1);
 const int HV(2);
 const double TIME_STEP(5e-3);
 const int MAX_TASK_NUM(10);
+
 struct BaseTask
 {
     std::string name;
@@ -108,7 +109,7 @@ class Core
 
     std::priority_queue<Task, std::vector<Task>, CompareTaskDeadline> exe_list;
     std::priority_queue<Task, std::vector<Task>, CompareTaskArrival> task_list;
-    std::priority_queue<Slack, std::vector<Slack>, CompareSlackExipre> slack_list;
+    // std::priority_queue<Slack, std::vector<Slack>, CompareSlackExipre> slack_list;
     std::vector<BaseTask> assigned_tasks;
     long core_lcm;
     long sys_lcm;
@@ -132,7 +133,9 @@ class Core
     float slackAssignHigh, slackAssignLow; //assigned slack for low/high
     float slackNeedHigh, slackNeedlow;
     int voltage;
+    bool voltageChanged;
     int spd[HV + 1];
+    float slackForDVFS;
     double p_ratio[HV + 1];    //power ratio when using different voltage
     double area_ratio[blocks]; // weight for each functional block when calculating reliability
     bool dvfs_tradition;
@@ -144,7 +147,7 @@ class Core
     int taskSlackFree[MAX_TASK_NUM];
     int taskSlackHigh[MAX_TASK_NUM];
     int taskSlackLow[MAX_TASK_NUM];
-    int taskSlack[MAX_TASK_NUM];
+    std::pair<long, float> taskSlack[MAX_TASK_NUM];
 
 public:
     double temperature[blocks];
@@ -179,7 +182,7 @@ public:
     void dynamic_reset();
     void cal_static();
     void alloc_dynamic();
-    void handle_expire();
+    void HandleExpire();
     void cal_rel(double sys_time);
     void set_dvfs_mode(bool dvfs_type);
     void handle_expire_tradition();
@@ -188,10 +191,11 @@ public:
     void set_speed();
     void pdvfs_defer();
     void defer_set_speed(float ratio);
-    void use_slack_high(float s_used);
-    void use_slack_low(float s_used);
-    void use_slack_left(float s_used);
-    void handle_about_expire();
+    void UseSlackHigh(float s_used);
+    void UseSlackLow(float s_used);
+    void UseSlackFree(float s_used);
+    void HandleAboutExpire();
+    void AssignNewSlack(int, float);
 };
 long get_gcd(long a, long b);
 long get_lcm(long a, long b);
